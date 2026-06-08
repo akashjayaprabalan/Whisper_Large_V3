@@ -111,6 +111,58 @@ def pipeline_device(torch: Any, device: str) -> Any:
         return torch.device("mps")
     return -1
 
+def load_asr_pipeline(
+    torch: Any,
+    auto_model_cls: Any,
+    processor_cls: Any,
+    pipeline_fn: Any,
+    compressed_tensors_config_cls: Any,
+    model_id: str,
+    requested_device: str,
+) -> tuple[Any, str]:
+    candidates = [requested_device]
+    if requested_device != "cpu":
+        candidates.append("cpu")
+
+    last_error: Exception | None = None
+    for device in candidates:
+        try:
+            processor = processor_cls.from_pretrained(model_id)
+            model = auto_model_cls.from_pretrained(
+                model_id,
+                low_cpu_mem_usage=True,
+                quantization_config=compressed_tensors_config_cls(
+                    run_compressed=False
+                ),
+                dtype=torch.bfloat16,
+            )
+            model.to(device)
+            model.eval()
+            pipe = pipeline_fn(
+                "automatic-speech-recognition",
+                model=model,
+                tokenizer=processor.tokenizer,
+                feature_extractor=processor.feature_extractor,
+                device=pipeline_device(torch, device),
+                dtype=torch.bfloat16,
+            )
+            return pipe, device
+        except Exception as exc:
+            last_error = exc
+            if device != "cpu":
+                print(
+                    f"Could not load ASR on {device}; retrying on CPU. "
+                    f"Reason: {exc}",
+                    file=sys.stderr,
+                )
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            else:
+                break
+
+    raise RuntimeError(f"Could not load ASR model {model_id!r}") from last_error
+
 def main() -> None:
     parse_args()
 
