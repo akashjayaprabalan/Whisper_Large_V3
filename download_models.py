@@ -51,7 +51,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    parse_args()
+    args = parse_args()
+
+    print(f"Downloading ASR model: {args.asr_repo} -> {args.asr_dir}")
+    asr_path = download_repo(args.asr_repo, args.asr_dir, ASR_ALLOW_PATTERNS)
+    print(f"ASR model ready at {asr_path}")
 
 
 if __name__ == "__main__":
