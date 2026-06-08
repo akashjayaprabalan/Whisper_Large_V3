@@ -5,7 +5,7 @@ This folder contains a local Python pipeline that:
 1. Uses `Reza2kn/openai_whisper-large-v3-NVFP4` for speech-to-text transcription.
 2. Translates the resulting transcript to English with a small text model.
 
-The default translation model is `PontifexMaximus/opus-mt-iir-en-finetuned-fa-to-en`, a compact Marian model fine-tuned for Persian-to-English.
+The default translation model is `PontifexMaximus/opus-mt-iir-en-finetuned-fa-to-en`, a compact Marian model fine-tuned for Persian-to-English. If you want to compare against a larger mT5 translator, pass `--translation-model persiannlp/mt5-small-parsinlu-opus-translation_fa_en`.
 
 ## Setup
 
@@ -24,3 +24,30 @@ Download the ASR and translation models into this project:
 ```
 
 The ASR model is about 1.1 GB. The default translation model is about 304 MB.
+
+## Run
+
+```bash
+.venv/bin/python transcribe_translate.py /path/to/audio.mp3 \
+  --output-json outputs/result.json \
+  --output-text outputs/english.txt
+```
+
+By default, Whisper is forced to Persian/Farsi with `--language fa`. For automatic language detection:
+
+```bash
+.venv/bin/python transcribe_translate.py /path/to/audio.mp3 --language auto
+```
+
+For the larger mT5 Persian-to-English translator:
+
+```bash
+.venv/bin/python transcribe_translate.py /path/to/audio.mp3 \
+  --translation-model persiannlp/mt5-small-parsinlu-opus-translation_fa_en
+```
+
+To produce only the source-language transcript:
+
+```bash
+.venv/bin/python transcribe_translate.py /path/to/audio.mp3 --skip-translation
+```
