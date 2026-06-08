@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 DEFAULT_ASR_REPO = "Reza2kn/openai_whisper-large-v3-NVFP4"
+DEFAULT_TRANSLATION_REPO = "PontifexMaximus/opus-mt-iir-en-finetuned-fa-to-en"
 
 ASR_ALLOW_PATTERNS = [
     "README.md",
@@ -14,6 +15,16 @@ ASR_ALLOW_PATTERNS = [
     "*.yaml",
 ]
 
+TRANSLATION_ALLOW_PATTERNS = [
+    "README.md",
+    "*.json",
+    "*.spm",
+    "*.model",
+    "*.txt",
+    "pytorch_model.bin",
+    "vocab.json",
+]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -21,6 +32,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--asr-repo", default=DEFAULT_ASR_REPO)
     parser.add_argument("--asr-dir", type=Path, default=Path("models/asr"))
+    parser.add_argument("--translation-repo", default=DEFAULT_TRANSLATION_REPO)
+    parser.add_argument(
+        "--translation-dir", type=Path, default=Path("models/translation_fa_en")
+    )
     return parser.parse_args()
 
 
