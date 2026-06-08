@@ -163,6 +163,29 @@ def load_asr_pipeline(
 
     raise RuntimeError(f"Could not load ASR model {model_id!r}") from last_error
 
+def transcribe(
+    asr_pipe: Any,
+    audio_path: Path,
+    language: str,
+    chunk_length_s: float,
+    stride_length_s: float,
+    max_new_tokens: int | None,
+) -> dict[str, Any]:
+    generate_kwargs: dict[str, Any] = {"task": "transcribe"}
+    if language.lower() != "auto":
+        generate_kwargs["language"] = language
+    if max_new_tokens is not None:
+        generate_kwargs["max_new_tokens"] = max_new_tokens
+
+    result = asr_pipe(
+        str(audio_path),
+        chunk_length_s=chunk_length_s,
+        stride_length_s=stride_length_s,
+        return_timestamps=True,
+        generate_kwargs=generate_kwargs,
+    )
+    return dict(result)
+
 def main() -> None:
     parse_args()
 
