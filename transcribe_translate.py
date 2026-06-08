@@ -63,6 +63,54 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+def import_runtime() -> tuple[Any, Any, Any, Any, Any, Any, Any]:
+    try:
+        import torch
+        from transformers import (
+            AutoModelForSeq2SeqLM,
+            AutoModelForSpeechSeq2Seq,
+            AutoProcessor,
+            AutoTokenizer,
+            pipeline,
+        )
+        from transformers.utils.quantization_config import CompressedTensorsConfig
+    except ImportError as exc:
+        raise SystemExit(
+            "Missing runtime dependencies. Run: "
+            "python -m pip install -r requirements.txt"
+        ) from exc
+
+    return (
+        torch,
+        AutoModelForSeq2SeqLM,
+        AutoModelForSpeechSeq2Seq,
+        AutoProcessor,
+        AutoTokenizer,
+        pipeline,
+        CompressedTensorsConfig,
+    )
+
+def choose_device(torch: Any, requested: str) -> str:
+    if requested != "auto":
+        if requested == "cuda" and not torch.cuda.is_available():
+            raise SystemExit("CUDA was requested, but torch cannot see a CUDA device.")
+        if requested == "mps" and not torch.backends.mps.is_available():
+            raise SystemExit("MPS was requested, but torch cannot see an MPS device.")
+        return requested
+
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+def pipeline_device(torch: Any, device: str) -> Any:
+    if device == "cuda":
+        return 0
+    if device == "mps":
+        return torch.device("mps")
+    return -1
+
 def main() -> None:
     parse_args()
 
