@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from huggingface_hub import snapshot_download
+
 
 DEFAULT_ASR_REPO = "Reza2kn/openai_whisper-large-v3-NVFP4"
 DEFAULT_TRANSLATION_REPO = "PontifexMaximus/opus-mt-iir-en-finetuned-fa-to-en"
@@ -24,6 +26,15 @@ TRANSLATION_ALLOW_PATTERNS = [
     "pytorch_model.bin",
     "vocab.json",
 ]
+
+
+def download_repo(repo_id: str, local_dir: Path, allow_patterns: list[str]) -> str:
+    local_dir.mkdir(parents=True, exist_ok=True)
+    return snapshot_download(
+        repo_id=repo_id,
+        local_dir=local_dir,
+        allow_patterns=allow_patterns,
+    )
 
 
 def parse_args() -> argparse.Namespace:
