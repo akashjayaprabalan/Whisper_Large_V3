@@ -272,6 +272,26 @@ def translate_to_english(
 
     return "\n".join(part.strip() for part in translated if part.strip())
 
+def write_outputs(payload: dict[str, Any], args: argparse.Namespace) -> None:
+    if args.output_json:
+        args.output_json.parent.mkdir(parents=True, exist_ok=True)
+        args.output_json.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    output_text = payload.get("english") or payload["transcript"]
+    if args.output_text:
+        args.output_text.parent.mkdir(parents=True, exist_ok=True)
+        args.output_text.write_text(output_text, encoding="utf-8")
+
+    if not args.output_json and not args.output_text:
+        print("\nTranscript:\n")
+        print(payload["transcript"])
+        if payload.get("english"):
+            print("\nEnglish:\n")
+            print(payload["english"])
+
 def main() -> None:
     parse_args()
 
