@@ -14,8 +14,10 @@ DEFAULT_TRANSLATION_REPO = "PontifexMaximus/opus-mt-iir-en-finetuned-fa-to-en"
 DEFAULT_ASR_DIR = Path("models/asr")
 DEFAULT_TRANSLATION_DIR = Path("models/translation_fa_en")
 
+
 def default_model_location(local_dir: Path, repo_id: str) -> str:
     return str(local_dir) if local_dir.exists() else repo_id
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -47,6 +49,41 @@ def parse_args() -> argparse.Namespace:
         help="Device for both models.",
     )
     parser.add_argument(
+        "--chunk-length-s",
+        type=float,
+        default=30.0,
+        help="ASR chunk length in seconds for long audio.",
+    )
+    parser.add_argument(
+        "--stride-length-s",
+        type=float,
+        default=5.0,
+        help="ASR overlap in seconds between chunks.",
+    )
+    parser.add_argument(
+        "--translation-max-input-tokens",
+        type=int,
+        default=420,
+        help="Maximum tokens per translation chunk.",
+    )
+    parser.add_argument(
+        "--translation-max-new-tokens",
+        type=int,
+        default=256,
+        help="Maximum generated tokens per translation chunk.",
+    )
+    parser.add_argument(
+        "--asr-max-new-tokens",
+        type=int,
+        help="Optional cap for Whisper decode length. Useful for smoke tests.",
+    )
+    parser.add_argument(
+        "--num-beams",
+        type=int,
+        default=4,
+        help="Beam count for translation generation.",
+    )
+    parser.add_argument(
         "--skip-translation",
         action="store_true",
         help="Only produce the source-language transcript.",
@@ -62,6 +99,7 @@ def parse_args() -> argparse.Namespace:
         help="Optional path for the English text, or transcript if translation is skipped.",
     )
     return parser.parse_args()
+
 
 def import_runtime() -> tuple[Any, Any, Any, Any, Any, Any, Any]:
     try:
@@ -90,6 +128,7 @@ def import_runtime() -> tuple[Any, Any, Any, Any, Any, Any, Any]:
         CompressedTensorsConfig,
     )
 
+
 def choose_device(torch: Any, requested: str) -> str:
     if requested != "auto":
         if requested == "cuda" and not torch.cuda.is_available():
@@ -104,12 +143,14 @@ def choose_device(torch: Any, requested: str) -> str:
         return "mps"
     return "cpu"
 
+
 def pipeline_device(torch: Any, device: str) -> Any:
     if device == "cuda":
         return 0
     if device == "mps":
         return torch.device("mps")
     return -1
+
 
 def load_asr_pipeline(
     torch: Any,
@@ -163,6 +204,7 @@ def load_asr_pipeline(
 
     raise RuntimeError(f"Could not load ASR model {model_id!r}") from last_error
 
+
 def transcribe(
     asr_pipe: Any,
     audio_path: Path,
@@ -186,6 +228,7 @@ def transcribe(
     )
     return dict(result)
 
+
 def split_sentences(text: str) -> list[str]:
     text = re.sub(r"\s+", " ", text).strip()
     if not text:
@@ -195,6 +238,7 @@ def split_sentences(text: str) -> list[str]:
         for part in re.split(r"(?<=[.!?؟؛۔])\s+", text)
         if part.strip()
     ]
+
 
 def chunk_for_translation(text: str, tokenizer: Any, max_input_tokens: int) -> list[str]:
     sentences = split_sentences(text)
@@ -232,6 +276,7 @@ def chunk_for_translation(text: str, tokenizer: Any, max_input_tokens: int) -> l
     if current:
         chunks.append(" ".join(current).strip())
     return chunks
+
 
 def translate_to_english(
     torch: Any,
@@ -272,6 +317,7 @@ def translate_to_english(
 
     return "\n".join(part.strip() for part in translated if part.strip())
 
+
 def write_outputs(payload: dict[str, Any], args: argparse.Namespace) -> None:
     if args.output_json:
         args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -291,6 +337,7 @@ def write_outputs(payload: dict[str, Any], args: argparse.Namespace) -> None:
         if payload.get("english"):
             print("\nEnglish:\n")
             print(payload["english"])
+
 
 def main() -> None:
     args = parse_args()
@@ -329,9 +376,9 @@ def main() -> None:
         asr_pipe,
         args.audio,
         args.language,
-        30.0,
-        5.0,
-        None,
+        args.chunk_length_s,
+        args.stride_length_s,
+        args.asr_max_new_tokens,
     )
     transcript = asr_result["text"].strip()
 
@@ -345,9 +392,9 @@ def main() -> None:
             translation_model,
             transcript,
             requested_device,
-            420,
-            256,
-            4,
+            args.translation_max_input_tokens,
+            args.translation_max_new_tokens,
+            args.num_beams,
         )
 
     payload = {
