@@ -293,7 +293,73 @@ def write_outputs(payload: dict[str, Any], args: argparse.Namespace) -> None:
             print(payload["english"])
 
 def main() -> None:
-    parse_args()
+    args = parse_args()
+    if not args.audio.exists():
+        raise SystemExit(f"Audio file not found: {args.audio}")
+
+    (
+        torch,
+        seq2seq_model_cls,
+        speech_model_cls,
+        processor_cls,
+        tokenizer_cls,
+        pipeline_fn,
+        compressed_tensors_config_cls,
+    ) = import_runtime()
+
+    requested_device = choose_device(torch, args.device)
+    asr_model = args.asr_model or default_model_location(DEFAULT_ASR_DIR, DEFAULT_ASR_REPO)
+    translation_model = args.translation_model or default_model_location(
+        DEFAULT_TRANSLATION_DIR,
+        DEFAULT_TRANSLATION_REPO,
+    )
+
+    print(f"Loading ASR model: {asr_model}")
+    asr_pipe, asr_device = load_asr_pipeline(
+        torch,
+        speech_model_cls,
+        processor_cls,
+        pipeline_fn,
+        compressed_tensors_config_cls,
+        asr_model,
+        requested_device,
+    )
+    print(f"Transcribing on {asr_device}: {args.audio}")
+    asr_result = transcribe(
+        asr_pipe,
+        args.audio,
+        args.language,
+        30.0,
+        5.0,
+        None,
+    )
+    transcript = asr_result["text"].strip()
+
+    english = None
+    if not args.skip_translation and transcript:
+        print(f"Loading translation model: {translation_model}")
+        english = translate_to_english(
+            torch,
+            seq2seq_model_cls,
+            tokenizer_cls,
+            translation_model,
+            transcript,
+            requested_device,
+            420,
+            256,
+            4,
+        )
+
+    payload = {
+        "audio": str(args.audio),
+        "language": args.language,
+        "asr_model": asr_model,
+        "translation_model": None if args.skip_translation else translation_model,
+        "transcript": transcript,
+        "english": english,
+        "chunks": asr_result.get("chunks", []),
+    }
+    write_outputs(payload, args)
 
 
 if __name__ == "__main__":
