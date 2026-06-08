@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--translation-dir", type=Path, default=Path("models/translation_fa_en")
     )
+    parser.add_argument(
+        "--skip-translation",
+        action="store_true",
+        help="Only download the ASR model.",
+    )
     return parser.parse_args()
 
 
@@ -56,6 +61,20 @@ def main() -> None:
     print(f"Downloading ASR model: {args.asr_repo} -> {args.asr_dir}")
     asr_path = download_repo(args.asr_repo, args.asr_dir, ASR_ALLOW_PATTERNS)
     print(f"ASR model ready at {asr_path}")
+
+    if args.skip_translation:
+        return
+
+    print(
+        "Downloading translation model: "
+        f"{args.translation_repo} -> {args.translation_dir}"
+    )
+    translation_path = download_repo(
+        args.translation_repo,
+        args.translation_dir,
+        TRANSLATION_ALLOW_PATTERNS,
+    )
+    print(f"Translation model ready at {translation_path}")
 
 
 if __name__ == "__main__":
