@@ -186,6 +186,16 @@ def transcribe(
     )
     return dict(result)
 
+def split_sentences(text: str) -> list[str]:
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return []
+    return [
+        part.strip()
+        for part in re.split(r"(?<=[.!?؟؛۔])\s+", text)
+        if part.strip()
+    ]
+
 def main() -> None:
     parse_args()
 
