@@ -1,4 +1,5 @@
 accelerate>=1.10.0
+compressed-tensors>=0.12.0
 huggingface-hub>=0.36.0
 torch>=2.8.0
 transformers>=4.57.0
