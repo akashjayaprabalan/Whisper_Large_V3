@@ -7,6 +7,10 @@ This folder contains a local Python pipeline that:
 
 The default translation model is `PontifexMaximus/opus-mt-iir-en-finetuned-fa-to-en`, a compact Marian model fine-tuned for Persian-to-English. If you want to compare against a larger mT5 translator, pass `--translation-model persiannlp/mt5-small-parsinlu-opus-translation_fa_en`.
 
+The top-level scripts are thin command wrappers. The implementation lives in the
+`whisper_large_v3/` package so ASR loading, translation chunking, device
+selection, model downloads, and output writing can be tested independently.
+
 ## Setup
 
 Use Python 3.11 on this machine:
@@ -50,4 +54,13 @@ To produce only the source-language transcript:
 
 ```bash
 .venv/bin/python transcribe_translate.py /path/to/audio.mp3 --skip-translation
+```
+
+## Development checks
+
+```bash
+python3 -m unittest
+python3 -m compileall .
+python3 transcribe_translate.py --help
+python3 download_models.py --help
 ```
